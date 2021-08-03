@@ -197,7 +197,7 @@ Implementing this enhancement requires changes in the following repositories:
 * openshift/api
 * openshift/cluster-ingress-operator
 
-OpenShift Cluster Ingress Operator, creates a deployment for Router with environment variables for port bindings which Openshift Router already respects. `ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, ``ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT`.
+OpenShift Cluster Ingress Operator, creates a deployment for Router with environment variables for port bindings which Openshift Router already respects. `ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, `ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT`.
 
 ### Risks and Mitigations
 
@@ -238,7 +238,7 @@ be added:
     - `STATS_PORT=1936`
 
 3. Update the IngressController to specify `spec.endpointPublishingStrategy.hostNetwork.bindOptions`.
-4. Verify that the IngressController updates the router deployment to specify the corresponding values for `ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, ``ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT`.
+4. Verify that the IngressController updates the router deployment to specify the corresponding values for `ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, `ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT`.
 
 ### Graduation Criteria
 
