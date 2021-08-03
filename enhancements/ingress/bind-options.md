@@ -165,7 +165,7 @@ spec:
     type: HostNetwork
     hostNetwork:
       bindOptions:
-	    httpPort: 11080
+        httpPort: 11080
         httpsPort: 11443
         sniPort: 11444
         noSniPort: 11445
