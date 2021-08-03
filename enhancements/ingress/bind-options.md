@@ -218,17 +218,6 @@ expanded to cover the additional functionality.
 The operator has end-to-end tests; for this enhancement, the following test can
 be added:
 
-1. Create an IngressController that specifies that access logs should be logged using container logging, and that otherwise uses the default settings.
-2. Open a connection to one of the standard routes (such as the console route) without sending an HTTP request, and wait for the connection to time out.
-3. Verify that the IngressController sends an "HTTP 408" response, and that the empty request is logged.
-4. Configure the IngressController not to log of empty requests.
-5. Repeat Step 2.
-6. Verify that the IngressController sends an "HTTP 408" response, and that the empty request is **not** logged.
-7. Configure the IngressController not to respond to empty requests.
-8. Repeat Step 2.
-9. Verify that the IngressController closes the connection **without** sending a response, and that the empty request is **not** logged.
-
-
 1. Create an IngressController that enables the `HostNetwork` endpoint publishing strategy type without specifying `spec.endpointPublishingStrategy.hostNetwork.bindOptions`.
 2. Verify that the IngressController configures:
     - `ROUTER_SERVICE_HTTP_PORT=80`
