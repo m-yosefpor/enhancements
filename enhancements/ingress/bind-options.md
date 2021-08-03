@@ -271,7 +271,7 @@ N/A.
 
 This enhancement is being implemented in OpenShift 4.9.
 
-In OpenShift 3.3 to 3.11 it was possible to use `ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, ``ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT` environment variables.
+In OpenShift 3.3 to 3.11 it was possible to use `ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, `ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT` environment variables.
 
 
 ## Alternatives
