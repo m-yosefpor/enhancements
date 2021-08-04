@@ -288,3 +288,8 @@ In OpenShift 3.3 to 3.11 it was possible to use `ROUTER_SERVICE_HTTP_PORT`, `ROU
 ## Alternatives
 
 N/A
+
+
+## Drawbacks
+
+N/A
