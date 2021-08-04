@@ -37,7 +37,8 @@ mitigating port binding conflicts.
 
 When using HostNetwork strategy for ingressControllers, the default 80, 443, 10443, 10444, 1936 ports on the host are bound by HAProxy for http, https, no_sni, sni and stats correspondingly.
 However, those ports might be occupied by other processes (such as another set of ingressControllers), which makes it impossible to run multiple sets of ingressControllers on the same nodes with HostNetwork strategy.
-In Openshift 3.11, it was possible to listen on custom host ports via setting these env vars in Routers DeploymentConfig:
+In Openshift 3.11, it was possible to listen on custom host ports via setting these env vars in Routers DeploymentConfig ([documentation link](https://docs.openshift.com/container-platform/3.11/architecture/networking/routes.html#env-variables)):
+
     - `ROUTER_SERVICE_HTTP_PORT=80`
     - `ROUTER_SERVICE_HTTPS_PORT=443`
     - `ROUTER_SERVICE_SNI_PORT=10444`
