@@ -73,116 +73,116 @@ Enable cluster administrators to configure IngressControllers which use "HostNet
 To enable cluster administrators to configure IngressControllers to configure bindOptions on IngressControllers that use the "HostNetwork" endpoint publishing strategies:
 the IngressController API is extended by adding an optional `BindOptions` field with type `*IngressControllerBindOptions` to the `HostNetworkStrategy` struct:
 
-```go
-// HostNetworkStrategy holds parameters for the HostNetwork endpoint publishing
-// strategy.
-type HostNetworkStrategy struct {
-	// ...
+    ```go
+    // HostNetworkStrategy holds parameters for the HostNetwork endpoint publishing
+    // strategy.
+    type HostNetworkStrategy struct {
+        // ...
 
-	// bindOptions defines parameters for binding haproxy in ingress controller pods.
-	// All fields are optional and will use their respective defaults if not set.
-	// See specific bindOptions fields for more details.
-	//
-	//
-	// Setting fields within bindOptions is generally not recommended. The
-	// default values are suitable for most configurations.
-	//
-	// +optional
-	BindOptions *IngressControllerBindOptions `json:"bindOptions,omitempty"`
-}
-```
+        // bindOptions defines parameters for binding haproxy in ingress controller pods.
+        // All fields are optional and will use their respective defaults if not set.
+        // See specific bindOptions fields for more details.
+        //
+        //
+        // Setting fields within bindOptions is generally not recommended. The
+        // default values are suitable for most configurations.
+        //
+        // +optional
+        BindOptions *IngressControllerBindOptions `json:"bindOptions,omitempty"`
+    }
+    ```
 
 `IngressControllerBindOptions` is the follwoing struct:
 
-```go
-// IngressControllerBindOptions specifies options for binding haproxy in ingress controller pods
-type IngressControllerBindOptions struct {
+    ```go
+    // IngressControllerBindOptions specifies options for binding haproxy in ingress controller pods
+    type IngressControllerBindOptions struct {
 
-	// httpPort defines the port number which HAProxy process binds for
-	// http connections. Setting this field is generally not recommended. However in
-	// HostNetwork strategy, default http 80 port might be occupied by other processess
-	//
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=30000
-	// +kubebuilder:default:=80
-	// +optional
-	HTTPPort int32 `json:"httpPort,omitempty"`
+        // httpPort defines the port number which HAProxy process binds for
+        // http connections. Setting this field is generally not recommended. However in
+        // HostNetwork strategy, default http 80 port might be occupied by other processess
+        //
+        // +kubebuilder:validation:Optional
+        // +kubebuilder:validation:Minimum=1
+        // +kubebuilder:validation:Maximum=30000
+        // +kubebuilder:default:=80
+        // +optional
+        HTTPPort int32 `json:"httpPort,omitempty"`
 
-	// httpsPort defines the port number which HAProxy process binds for
-	// https connections. Setting this field is generally not recommended. However in
-	// HostNetwork strategy, default https 443 port might be occupied by other processess
-	//
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=30000
-	// +kubebuilder:default:=443
-	// +optional
-	HTTPSPort int32 `json:"httpsPort,omitempty"`
+        // httpsPort defines the port number which HAProxy process binds for
+        // https connections. Setting this field is generally not recommended. However in
+        // HostNetwork strategy, default https 443 port might be occupied by other processess
+        //
+        // +kubebuilder:validation:Optional
+        // +kubebuilder:validation:Minimum=1
+        // +kubebuilder:validation:Maximum=30000
+        // +kubebuilder:default:=443
+        // +optional
+        HTTPSPort int32 `json:"httpsPort,omitempty"`
 
-	// sniPort is for some internal front-end to back-end communication
-	// This port can be anything you want as long as they are unique on the machine.
-	// This port will not be exposed externally.
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=30000
-	// +kubebuilder:default:=10444
-	// +optional
-	SNIPort int32 `json:"sniPort,omitempty"`
+        // sniPort is for some internal front-end to back-end communication
+        // This port can be anything you want as long as they are unique on the machine.
+        // This port will not be exposed externally.
+        // +kubebuilder:validation:Optional
+        // +kubebuilder:validation:Minimum=1
+        // +kubebuilder:validation:Maximum=30000
+        // +kubebuilder:default:=10444
+        // +optional
+        SNIPort int32 `json:"sniPort,omitempty"`
 
-	// noSniPort is for some internal front-end to back-end communication
-	// This port can be anything you want as long as they are unique on the machine.
-	// This port will not be exposed externally.
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=30000
-	// +kubebuilder:default:=10443
-	// +optional
-	NoSNIPort int32 `json:"noSniPort,omitempty"`
+        // noSniPort is for some internal front-end to back-end communication
+        // This port can be anything you want as long as they are unique on the machine.
+        // This port will not be exposed externally.
+        // +kubebuilder:validation:Optional
+        // +kubebuilder:validation:Minimum=1
+        // +kubebuilder:validation:Maximum=30000
+        // +kubebuilder:default:=10443
+        // +optional
+        NoSNIPort int32 `json:"noSniPort,omitempty"`
 
-	// statsPort is the port number which HAProxy process binds
-	// to expose statistics on it. Setting this field is generally not recommended.
-	// However in HostNetwork strategy, default stats port 1936 might
-	// be occupied by other processess
-	//
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=30000
-	// +kubebuilder:default:=1936
-	// +optional
-	StatsPort int32 `json:"statsPort,omitempty"`
-}
-```
+        // statsPort is the port number which HAProxy process binds
+        // to expose statistics on it. Setting this field is generally not recommended.
+        // However in HostNetwork strategy, default stats port 1936 might
+        // be occupied by other processess
+        //
+        // +kubebuilder:validation:Optional
+        // +kubebuilder:validation:Minimum=1
+        // +kubebuilder:validation:Maximum=30000
+        // +kubebuilder:default:=1936
+        // +optional
+        StatsPort int32 `json:"statsPort,omitempty"`
+    }
+    ```
 
 The following example configures two IngressControllers with HostNetwork strategy that can run on the same nodes without port conflicts:
 
-```yaml
----
-apiVersion: operator.openshift.io/v1
-kind: IngressController
-metadata:
-  name: default-1
-  namespace: openshift-ingress-operator
-spec:
-  endpointPublishingStrategy:
-    type: HostNetwork
----
-apiVersion: operator.openshift.io/v1
-kind: IngressController
-metadata:
-  name: default-2
-  namespace: openshift-ingress-operator
-spec:
-  endpointPublishingStrategy:
-    type: HostNetwork
-    hostNetwork:
-      bindOptions:
-        httpPort: 11080
-        httpsPort: 11443
-        sniPort: 11444
-        noSniPort: 11445
-        statsPort: 1937
-```
+    ```yaml
+    ---
+    apiVersion: operator.openshift.io/v1
+    kind: IngressController
+    metadata:
+    name: default-1
+    namespace: openshift-ingress-operator
+    spec:
+    endpointPublishingStrategy:
+        type: HostNetwork
+    ---
+    apiVersion: operator.openshift.io/v1
+    kind: IngressController
+    metadata:
+    name: default-2
+    namespace: openshift-ingress-operator
+    spec:
+    endpointPublishingStrategy:
+        type: HostNetwork
+        hostNetwork:
+        bindOptions:
+            httpPort: 11080
+            httpsPort: 11443
+            sniPort: 11444
+            noSniPort: 11445
+            statsPort: 1937
+    ```
 
 ### Validation
 
