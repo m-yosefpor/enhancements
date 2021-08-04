@@ -37,7 +37,7 @@ mitigating port binding conflicts.
 
 When using HostNetwork strategy for ingressControllers, the default 80, 443, 10443, 10444, 1936 ports on the host are binded on HAProxy for http, https, no_sni, sni and stats correspondingly. However, those ports might be occupied by other processes (such as another set of ingressControllers), which makes it impossible to run multiple set of ingressControllers on the same nodes with HostNetwork strategy. In OKD3.11, it was possible to listen on custom host ports via setting these env vars in Routers DeploymentConfig, however there is not any options to specify custom ports in `IngressController.operator.openshift.io/v1` object right now.
 
-Having multiple set of ingressControllers is useful for router sharding, routers with different policies (public, private), routers with different configuration options, etc. Running in HostNetwork is a strict requirement in some scenarios (e.g. environemtns with custom PBR rules). Also there might be some performance considerations to run routers with HostNetwork strategy.
+Having multiple sets of ingressControllers is useful for router sharding, routers with different policies (public, private), routers with different configuration options, etc. Running in HostNetwork is a strict requirement in some scenarios (e.g. environments with custom PBR rules). Also there might be some performance considerations to run routers with HostNetwork strategy.
 
 Using custom nodeSelectors to ensure different ingressControllers runs on different nodes is not always feasible, when there are not many nodes in the cluster.
 
