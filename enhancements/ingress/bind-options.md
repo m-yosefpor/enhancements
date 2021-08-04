@@ -46,7 +46,7 @@ Using custom nodeSelectors to ensure different ingressControllers runs on differ
 
 ### Goal
 
-Enable cluster administrators to configure the following ports bindings on IngressControllers that use the "HostNetwork" endpoint publishing strategies:
+Enable cluster administrators to configure IngressControllers which use "HostNetwork" endpoint publishing strategy with the bindings for the following ports:
 - HTTP
 - HTTPS
 - SNI
@@ -59,7 +59,7 @@ Enable cluster administrators to configure the following ports bindings on Ingre
 
 ## Proposal
 
-To enable cluster administrators to configure IngressControllers to configure bindOptions on IngressControllers that use the "HostNetwork" endpoint publishing strategies:, the IngressController API is extended by adding an optional `BindOptions` field with type `*IngressControllerBindOptions` to the `HostNetworkStrategy` struct:
+To enable cluster administrators to configure IngressControllers to configure bindOptions on IngressControllers that use the "HostNetwork" endpoint publishing strategies: the IngressController API is extended by adding an optional `BindOptions` field with type `*IngressControllerBindOptions` to the `HostNetworkStrategy` struct:
 
 ```go
 // HostNetworkStrategy holds parameters for the HostNetwork endpoint publishing
@@ -176,7 +176,7 @@ spec:
 
 Specifying `spec.endpointPublishingStrategy.type: HostNetwork` and omitting
 `spec.endpointPublishingStrategy.hostNetwork` or
-`spec.endpointPublishingStrategy.hostNetwork.bindOptions` is valid and specifies
+`spec.endpointPublishingStrategy.hostNetwork.bindOptions` is valid and implies
 the default behavior, which is to use the default ports to bind to. The API validates
 that any value provided for the ports defined in
 `spec.endpointPublishingStrategy.hostNetwork.bindOptions` is greater than `1`, and lower than `30000` (to avoid conflicts with 30000-32767 nodePort services range).
@@ -197,12 +197,12 @@ Implementing this enhancement requires changes in the following repositories:
 * openshift/api
 * openshift/cluster-ingress-operator
 
-OpenShift Cluster Ingress Operator, creates a deployment for Router with environment variables for port bindings which Openshift Router already respects. `ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, `ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT`.
+OpenShift Cluster Ingress Operator, creates a deployment for Router with environment variables for port bindings which OpenShift Router already respects: `ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, `ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT`.
 
 ### Risks and Mitigations
 
 
-Users might define conflicting ports which causes haproxy process fail to start. A mitigation to this risk is to implement a validation feature in cluster-ingress-operator in reconsiler loop to ensure all the ports defined in the `bindOptions` section are unique, and return err if there are conflicting ports with a meaningful error message.
+Users might define conflicting ports which would cause HAProxy process to fail at startup. A mitigation to this risk is to implement a validation feature in the reconciliation loop of the Cluster Ingress Operator to ensure all the ports defined in the `bindOptions` section are unique, and return an error with a meaningful message if there are conflicting ports.
 
 Also if the underlying IngressController implementation were to change away from HAProxy to a different implementation, some values such as `sniPort` and `noSniPort` might not be needed and loose their meaning. Also the `statsPort` teminology might be different for other tools such as `Envoy`, which `metricPort` might be more meaningful in that case.
 
