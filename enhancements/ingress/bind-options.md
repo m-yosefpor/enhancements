@@ -3,7 +3,7 @@ title: bind-options
 authors:
   - "@m-yosefpor"
 reviewers:
-  -
+  - "@alebedev87"
 approvers:
   -
 creation-date: 2021-08-04
@@ -35,9 +35,19 @@ mitigating port binding conflicts.
 
 ## Motivation
 
-When using HostNetwork strategy for ingressControllers, the default 80, 443, 10443, 10444, 1936 ports on the host are binded on HAProxy for http, https, no_sni, sni and stats correspondingly. However, those ports might be occupied by other processes (such as another set of ingressControllers), which makes it impossible to run multiple set of ingressControllers on the same nodes with HostNetwork strategy. In OKD3.11, it was possible to listen on custom host ports via setting these env vars in Routers DeploymentConfig, however there is not any options to specify custom ports in `IngressController.operator.openshift.io/v1` object right now.
+When using HostNetwork strategy for ingressControllers, the default 80, 443, 10443, 10444, 1936 ports on the host are bound by HAProxy for http, https, no_sni, sni and stats correspondingly.
+However, those ports might be occupied by other processes (such as another set of ingressControllers), which makes it impossible to run multiple sets of ingressControllers on the same nodes with HostNetwork strategy.
+In Openshift 3.11, it was possible to listen on custom host ports via setting these env vars in Routers DeploymentConfig:
+    - `ROUTER_SERVICE_HTTP_PORT=80`
+    - `ROUTER_SERVICE_HTTPS_PORT=443`
+    - `ROUTER_SERVICE_SNI_PORT=10444`
+    - `ROUTER_SERVICE_NO_SNI_PORT=10443`
+    - `STATS_PORT=1936`
 
-Having multiple sets of ingressControllers is useful for router sharding, routers with different policies (public, private), routers with different configuration options, etc. Running in HostNetwork is a strict requirement in some scenarios (e.g. environments with custom PBR rules). Also there might be some performance considerations to run routers with HostNetwork strategy.
+However there is not any options to specify custom ports in `IngressController.operator.openshift.io/v1` object right now.
+
+Having multiple sets of ingressControllers is useful for router sharding, routers with different policies (public, private), routers with different configuration options, etc.
+Running in HostNetwork is a strict requirement in some scenarios (e.g. environments with custom PBR rules). Also there might be some performance considerations to run routers with HostNetwork strategy.
 
 Using custom nodeSelectors to ensure different ingressControllers runs on different nodes is not always feasible, when there are not many nodes in the cluster.
 
@@ -59,7 +69,8 @@ Enable cluster administrators to configure IngressControllers which use "HostNet
 
 ## Proposal
 
-To enable cluster administrators to configure IngressControllers to configure bindOptions on IngressControllers that use the "HostNetwork" endpoint publishing strategies: the IngressController API is extended by adding an optional `BindOptions` field with type `*IngressControllerBindOptions` to the `HostNetworkStrategy` struct:
+To enable cluster administrators to configure IngressControllers to configure bindOptions on IngressControllers that use the "HostNetwork" endpoint publishing strategies:
+the IngressController API is extended by adding an optional `BindOptions` field with type `*IngressControllerBindOptions` to the `HostNetworkStrategy` struct:
 
 ```go
 // HostNetworkStrategy holds parameters for the HostNetwork endpoint publishing
@@ -197,14 +208,16 @@ Implementing this enhancement requires changes in the following repositories:
 * openshift/api
 * openshift/cluster-ingress-operator
 
-OpenShift Cluster Ingress Operator, creates a deployment for Router with environment variables for port bindings which OpenShift Router already respects: `ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, `ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT`.
+OpenShift Cluster Ingress Operator, creates a deployment for Router with environment variables for port bindings which OpenShift Router already respects:
+`ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, `ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT`.
 
 ### Risks and Mitigations
 
 
-Users might define conflicting ports which would cause HAProxy process to fail at startup. A mitigation to this risk is to implement a validation feature in the reconciliation loop of the Cluster Ingress Operator to ensure all the ports defined in the `bindOptions` section are unique, and return an error with a meaningful message if there are conflicting ports.
+Users might define conflicting ports which would cause HAProxy process to fail at startup. A mitigation to this risk is to implement a validation feature in the reconciliation loop of the Cluster Ingress Operator
+to ensure all the ports defined in the `bindOptions` section are unique, and return an error with a meaningful message if there are conflicting ports.
 
-Also if the underlying IngressController implementation were to change away from HAProxy to a different implementation, some values such as `sniPort` and `noSniPort` might not be needed and loose their meaning. Also the `statsPort` teminology might be different for other tools such as `Envoy`, which `metricPort` might be more meaningful in that case.
+Also if the underlying IngressController implementation were to change away from HAProxy to a different implementation, some values such as `sniPort` and `noSniPort` might not be needed and loose their meaning.
 
 
 ## Design Details
@@ -213,10 +226,7 @@ Also if the underlying IngressController implementation were to change away from
 
 The controller that manages the IngressController Deployment and related
 resources has unit-test coverage; for this enhancement, the unit tests are
-expanded to cover the additional functionality.
-
-The operator has end-to-end tests; for this enhancement, the following test can
-be added:
+expanded to cover the additional functionality:
 
 1. Create an IngressController that enables the `HostNetwork` endpoint publishing strategy type without specifying `spec.endpointPublishingStrategy.hostNetwork.bindOptions`.
 2. Verify that the IngressController configures:
@@ -227,7 +237,17 @@ be added:
     - `STATS_PORT=1936`
 
 3. Update the IngressController to specify `spec.endpointPublishingStrategy.hostNetwork.bindOptions`.
-4. Verify that the IngressController updates the router deployment to specify the corresponding values for `ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, `ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT`.
+4. Verify that the IngressController updates the router deployment to specify the corresponding values for
+`ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, `ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT`.
+
+
+The operator has end-to-end tests; for this enhancement, the following test can
+be added:
+
+1. deploy host network ingress controller with the default port bindings
+2. deploy another host network controller with the same node placements but with bindOptions field set with the ports not conflicting with the first ingress controller
+3. check that the second ingress controller becomes ready
+4. check that the first ingress controller is still ready
 
 ### Graduation Criteria
 
@@ -249,7 +269,8 @@ N/A.  We do not plan to deprecate this feature.
 
 On upgrade, the default configuration remains in effect.
 
-If a cluster administrator upgraded to 4.9, then use different ports for bindOptions, and then downgraded to 4.8, the downgrade would turn all the ingressController ports with HostNetwork strategy back to default ports.  The administrator would be responsible for making sure there are not any port conflicts when downgrading to OpenShift 4.8.
+If a cluster administrator upgraded to 4.9, then use different ports for bindOptions, and then downgraded to 4.8, the downgrade would turn all the ingressController ports with HostNetwork strategy back to default ports.
+The administrator would be responsible for making sure there are not any port conflicts when downgrading to OpenShift 4.8.
 
 
 ### Version Skew Strategy
