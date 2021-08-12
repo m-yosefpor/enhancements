@@ -48,7 +48,7 @@ In OpenShift 3.11, it was possible to listen on custom host ports via setting th
 However there is not any options to specify custom ports in `IngressController.operator.openshift.io/v1` object right now.
 
 Having multiple sets of ingressControllers is useful for router sharding, routers with different policies (public, private), routers with different configuration options, etc.
-Running in HostNetwork is a strict requirement in some scenarios (e.g. environments with custom PBR rules). Also there might be some performance considerations to run routers with HostNetwork strategy.
+Running in HostNetwork is a strict requirement in some scenarios (e.g. environments with custom PBR rules). Also routers with HostNetwork strategy has shown to have better performance (see [OKD4 benchmarks](https://docs.okd.io/latest/scalability_and_performance/routing-optimization.html))
 
 Using custom nodeSelectors to ensure different ingressControllers runs on different nodes is not always feasible, when there are not many nodes in the cluster.
 
