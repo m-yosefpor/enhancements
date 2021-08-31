@@ -57,16 +57,26 @@ Using custom nodeSelectors to ensure different ingressControllers runs on differ
 
 ### Goal
 
-Enable cluster administrators to configure IngressControllers which use "HostNetwork" endpoint publishing strategy with the bindings for the following ports:
+Enable cluster administrators to run multiple set of IngressControllers on the same node with "HostNetwork" endpoint publishing strategy, by configuring the bindings for the following ports:
 - HTTP
 - HTTPS
-- SNI
-- NoSNI
 - Stats
 
 ### Non-Goals
 
 1. Enabling cluster administrators to configure custom ports on IngressControllers that use any endpoint publishing strategy other than "HostNetwork".
+2. Enabling cluster administrators to configure custom ports on IngressControllers for `SNI` and `NO_SNI`.
+
+The reasons for number 2 to be a non-goal are:
+
+- The sysadmin’s goal is really only to configure alternative ports for 80/443/1936 and to be able to point an external LB to these ports.
+- Requiring the sysadmin to configure these additional ports would mean we would need additional documentation to explain why the sysadmin needed to care about something that is really an implementation detail of the HAProxy configuration.
+(And this internal implementation detail could conceivably change, in which case the API would become cruft.)
+- The larger API surface comes with an increased risk of misconfiguration and port conflicts that an automated solution could prevent.
+- Requiring 5 ports instead of just 3 reduces scalability for users who want to run a large number of host-network router pods on the same node.
+- Requiring HAProxy-specific configuration makes migration to another proxy (such as Contour) less straightforward.
+
+
 
 ## Proposal
 
@@ -120,26 +130,6 @@ the IngressController API is extended by adding an optional `BindOptions` field 
         // +optional
         HTTPSPort int32 `json:"httpsPort,omitempty"`
 
-        // sniPort is for some internal front-end to back-end communication
-        // This port can be anything you want as long as they are unique on the machine.
-        // This port will not be exposed externally.
-        // +kubebuilder:validation:Optional
-        // +kubebuilder:validation:Minimum=1
-        // +kubebuilder:validation:Maximum=30000
-        // +kubebuilder:default:=10444
-        // +optional
-        SNIPort int32 `json:"sniPort,omitempty"`
-
-        // noSniPort is for some internal front-end to back-end communication
-        // This port can be anything you want as long as they are unique on the machine.
-        // This port will not be exposed externally.
-        // +kubebuilder:validation:Optional
-        // +kubebuilder:validation:Minimum=1
-        // +kubebuilder:validation:Maximum=30000
-        // +kubebuilder:default:=10443
-        // +optional
-        NoSNIPort int32 `json:"noSniPort,omitempty"`
-
         // statsPort is the port number which HAProxy process binds
         // to expose statistics on it. Setting this field is generally not recommended.
         // However in HostNetwork strategy, default stats port 1936 might
@@ -179,8 +169,6 @@ The following example configures two IngressControllers with HostNetwork strateg
         bindOptions:
             httpPort: 11080
             httpsPort: 11443
-            sniPort: 11444
-            noSniPort: 11445
             statsPort: 1937
     ```
 
@@ -210,15 +198,21 @@ Implementing this enhancement requires changes in the following repositories:
 * openshift/cluster-ingress-operator
 
 OpenShift Cluster Ingress Operator, creates a deployment for Router with environment variables for port bindings which OpenShift Router already respects:
-`ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, `ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT`.
+`ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `STATS_PORT`.
+
+Also the deployments should not have ip:port conflicts for `SNI_PORT` and `NO_SNI_PORT`. To acheive this, the cluster ingress operator configures the router to use these alternative ports, and configures HAProxy to use a unique loopback address for the sni/nosni frontends.
+- This loopback address would be determined deterministically, for example by hashing the ingresscontroller’s name. For example, the “default” ingresscontroller could use 127.1.2.3, and the “custom” ingresscontroller could use 127.4.5.6.
+- The sni/nosni port numbers wouldn’t need to change to avoid the conflict as the routers would be using different IP addresses.
+
+This can be done with introducting two new environemnt variables named `ROUTER_SERVICE_SNI_IP`  and `ROUTER_SERVICE_SNI_IP` for routers, and change haproxy template to configure the frontend to bind on this IPs. The CIO sets these env vars for router deployment from `127.0.0.1/8` range based on ingresscontroller name hash.
+
+Another possible solution is to change router to get rid of the loopback hop using a Unix domain socket or other solution, which would have other advantages as well.
 
 ### Risks and Mitigations
 
 
 Users might define conflicting ports which would cause HAProxy process to fail at startup. A mitigation to this risk is to implement a validation feature in the reconciliation loop of the Cluster Ingress Operator
 to ensure all the ports defined in the `bindOptions` section are unique, and return an error with a meaningful message if there are conflicting ports.
-
-Also if the underlying IngressController implementation were to change away from HAProxy to a different implementation, some values such as `sniPort` and `noSniPort` might not be needed and loose their meaning.
 
 
 ## Design Details
@@ -233,13 +227,13 @@ expanded to cover the additional functionality:
 2. Verify that the IngressController configures:
     - `ROUTER_SERVICE_HTTP_PORT=80`
     - `ROUTER_SERVICE_HTTPS_PORT=443`
-    - `ROUTER_SERVICE_SNI_PORT=10444`
-    - `ROUTER_SERVICE_NO_SNI_PORT=10443`
+    - `ROUTER_SERVICE_SNI_IP=X`
+    - `ROUTER_SERVICE_NO_SNI_IP=X`
     - `STATS_PORT=1936`
 
 3. Update the IngressController to specify `spec.endpointPublishingStrategy.hostNetwork.bindOptions`.
 4. Verify that the IngressController updates the router deployment to specify the corresponding values for
-`ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `ROUTER_SERVICE_SNI_PORT`, `ROUTER_SERVICE_NO_SNI_PORT`, `STATS_PORT`.
+`ROUTER_SERVICE_HTTP_PORT`, `ROUTER_SERVICE_HTTPS_PORT`, `STATS_PORT`, `ROUTER_SERVICE_SNI_IP=Y`, `ROUTER_SERVICE_NO_SNI_IP=Y`.
 
 
 The operator has end-to-end tests; for this enhancement, the following test can
